@@ -2,6 +2,31 @@ const Question = require('../models/questionModel')
 
 class QuestionController {
 
+  static findOne (req, res) {
+    Question.find({ _id: req.params.id })
+      .populate('userId', 'fname')
+      .populate({ path: 'answer', populate: { path: 'userId' } })
+      .then(data => {
+        if (data.length !== 0) {
+          res.status(200).json({
+            status: 'success',
+            data: data[0]
+          })
+        } else {
+          res.status(403).json({
+            status: 'failed',
+            message: 'question not found'
+          })
+        }
+      })
+      .catch(err => {
+        res.status(500).json({
+          status: 'failed',
+          message: 'error when finding question'
+        })
+      })
+  }
+
   static createQuestion (req, res) {
     let data = {
       title: req.body.title,
@@ -68,7 +93,6 @@ class QuestionController {
 
   static findAllQuestion (req, res) {
     Question.find()
-      .populate({ path: 'upvote', populate: { path: 'userId' } })
       .populate('userId', 'fname')
       .then(data => {
         res.status(200).json({
@@ -82,6 +106,23 @@ class QuestionController {
           message: 'failed when get all data questions'
         })
       })
+  }
+
+  static solveQuestion (req, res) {
+    console.log('masuk method')
+    Question.updateOne ({ _id: req.params.id, userId: req.decoded.id }, { solved: true }, err => {
+      if (!err) {
+        res.status(201).json({
+          status: 'success',
+          message: 'success when updating solved question'
+        })
+      } else {
+        res.status(500).json({
+          status: 'success',
+          message : 'failed when updating solve question (internal errors)'
+        })
+      }
+    }) 
   }
 
   static createUpvote (req, res) {    
@@ -188,6 +229,24 @@ class QuestionController {
           message: 'failed when finding question'
         })
       }) 
+  }
+
+  static keyUp (req, res) {
+    Question.find({ title : { $regex: `${req.params.title}`, $options: 'i'}})
+      .populate('userId', 'fname')
+      .populate({ path: 'answer', populate: { path: 'userId' } })
+      .then(data => {
+        res.status(200).json({
+          status: 'success',  
+          data: data
+        })
+      })
+      .catch(err => {
+        res.status(500),json({
+          status: 'failed', 
+          message: `error when finding data`
+        })
+    } )
   }
 
 }
